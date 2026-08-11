@@ -4,6 +4,7 @@ import { AuthService } from "../services/auth.service";
 import { JWT_PUBLIC_KEY } from "../config/keys";
 
 export class AuthController {
+
   constructor(private readonly authService: AuthService) {}
 
   public register = async (req: FastifyRequest<{ Body: RegisterDTO }>, reply: FastifyReply) => {

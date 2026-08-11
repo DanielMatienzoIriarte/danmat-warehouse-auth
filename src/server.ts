@@ -1,62 +1,47 @@
-import Fastify, { FastifyInstance } from 'fastify';
-import fastifyCookie from '@fastify/cookie';
-import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import { connectDB } from './config/db.js';
 import { redisClient } from './config/redis.js';
-import { authRoutes } from './routes/auth.routes.js';
+import { buildServer } from './app.js';
 
-dotenv.config();
+const PORT = Number(process.env.PORT) || 4001;
+const HOST = process.env.HOST || '0.0.0.0';
 
-const server: FastifyInstance = Fastify({ logger:true });
+async function start() {
+  const server = await buildServer();
 
-async function buildServer() {
-  // Register cookie plugin with type augmentation support
-  await server.register(fastifyCookie, {
-    secret: process.env.COOKIE_SECRET || 'super_secret_cookie_key',
-  });
+  try {
+    // 1. Initialize External Infrastructure
+    server.log.info('Connecting to MongoDB and Redis...');
+    await mongoose.connect(process.env.MONGO_URI!);
 
-  // Register auth routes
-  await server.register(authRoutes);
-
-  server.get('/health', async (req, reply) => {
-    const dbState = mongoose.connection.readyState; // 1 = connected
-
-    let redisStatus = 'disconnected';
-
-    try {
-      const pong = await redisClient.ping();
-      if (pong === 'PONG') {
-        redisStatus = 'connected';
-      }
-    } catch (error) {
-      redisStatus = 'error';
+    if (redisClient.status === 'wait') {
+      await redisClient.connect();
     }
 
-    const isHealthy = dbState === 1 && redisStatus === 'connected';
-    const statusCode = isHealthy ? 200 : 530;
+    server.log.info('Infrastructure connected successfully.');
 
-    return reply.code(statusCode).send({
-      status: isHealthy ? 'healthy' : 'unhealthy',
-      timestamp: new Date(),
-      services: {
-        mongodb: dbState === 1 ? 'connected' : 'disconnected',
-        redis: redisStatus,
-      },
-    });
-  });
-}
+    // 2. Start Listening
+    await server.listen({ port: PORT, host: HOST });
+    server.log.info(`Auth microservice running on http://${HOST}:${PORT}`);
 
-const start = async() => {
-  try {
-    await connectDB();
-    await buildServer();
-
-    const port = Number(process.env.PORT) || 4001;
-    await server.listen({ port, host: '0.0.0.0' });
-    console.log(`Auth service running on port ${port}`);
-  } catch (error) {
-    server.log.error(error);
+    // 3. Graceful Shutdown Handler
+    const signals = ['SIGINT', 'SIGTERM'];
+    for (const signal of signals) {
+      process.on(signal, async () => {
+        server.log.info(`Received ${signal}. Initiating graceful shutdown...`);
+        try {
+          await server.close();
+          await redisClient.quit();
+          await mongoose.connection.close(false);
+          server.log.info('All connections closed cleanly. Exiting process.');
+          process.exit(0);
+        } catch (err) {
+          server.log.error({ err }, 'Error during graceful shutdown');
+          process.exit(1);
+        }
+      });
+    }
+  } catch (err) {
+    server.log.error({ err }, 'Failed to start server');
     process.exit(1);
   }
 }
