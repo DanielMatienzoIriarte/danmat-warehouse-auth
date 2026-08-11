@@ -7,19 +7,38 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node --test test/**/*.test.js",
     "start": "fastify start -l info app.js",
-    "dev": "fastify start -w -l info -P app.js"
+    "dev": "fastify start -w -l info -P app.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "fastify": "^5.0.0",
-    "fastify-plugin": "^5.0.0",
     "@fastify/autoload": "^6.0.0",
+    "@fastify/cookie": "^11.1.2",
     "@fastify/sensible": "^6.0.0",
-    "fastify-cli": "^7.4.1"
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.0.0",
+    "fastify-cli": "^7.4.1",
+    "fastify-plugin": "^5.0.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.1",
+    "uuid": "^14.0.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.2.0",
+    "@types/uuid": "^10.0.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "ts-node-dev": "^2.0.0",
+    "@types/jest": "^30.0.0"
+  }
 }
