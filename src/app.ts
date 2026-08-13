@@ -1,7 +1,10 @@
 import Fastify, { FastifyInstance } from 'fastify';
-import fastifyCookie from '@fastify/cookie';
-import { authRoutes } from './routes/auth.routes.js';
 import mongoose from 'mongoose';
+import fastifyCookie from '@fastify/cookie';
+import fastifyRateLimit from '@fastify/rate-limit';
+import fastifyHelmet from '@fastify/helmet';
+import { authRoutes } from './routes/auth.routes.js';
+import { servicesPlugin } from './plugins/services.plugin.js';
 import { redisClient } from './config/redis.js';
 
 export async function buildServer(): Promise<FastifyInstance> {
@@ -12,13 +15,26 @@ export async function buildServer(): Promise<FastifyInstance> {
     },
   });
 
-  // 1. Register Core Plugins
+  //Register Core Plugins
   await app.register(fastifyCookie, {
     secret: process.env.COOKIE_SECRET || 'super_secret_cookie_key',
   });
 
-  // 2. Register Application Routes
+  //Register Services applying Composition Roots via Decorators.
+  await app.register(servicesPlugin);
+
+  //Register Application Routes
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
+
+  //Register rate-limiter
+  await app.register(fastifyRateLimit, {
+    global: false, // Apply selectively to protect routes
+    max: 5,
+    timeWindow: '1 minute',
+  });
+
+  //Regsiter Helmet to secure headers
+  await app.register(fastifyHelmet);
 
   app.get('/health', async (req, reply) => {
     const dbState = mongoose.connection.readyState; // 1 = connected

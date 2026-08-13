@@ -27,7 +27,8 @@ describe('AuthService', () => {
     mockTokenService = {
       signAccessToken: jest.fn(),
       signRefreshToken: jest.fn(),
-      verifyToken: jest.fn(),
+      verifyRefreshToken: jest.fn(),
+      verifyAccessToken: jest.fn(),
     };
 
     mockCacheService = {
@@ -162,7 +163,7 @@ describe('AuthService', () => {
     });
 
     it('should throw an error if token verification fails', async () => {
-      mockTokenService.verifyToken.mockImplementation(() => {
+      mockTokenService.verifyRefreshToken.mockImplementation(() => {
         throw new Error('JWT expired');
       });
 
@@ -172,7 +173,7 @@ describe('AuthService', () => {
     });
 
     it('should throw an error if session does not exist in Redis', async () => {
-      mockTokenService.verifyToken.mockReturnValue({ user_id: 'uuid-123', email: 'john@example.com', role: 'client' });
+      mockTokenService.verifyRefreshToken.mockReturnValue({ user_id: 'uuid-123', email: 'john@example.com', role: 'client' });
       mockCacheService.getSession.mockResolvedValue(null);
 
       await expect(authService.refreshToken('valid_token')).rejects.toThrow(
@@ -181,7 +182,7 @@ describe('AuthService', () => {
     });
 
     it('should return a new access token on valid refresh token and active session', async () => {
-      mockTokenService.verifyToken.mockReturnValue({ user_id: 'uuid-123', email: 'john@example.com', role: 'client' });
+      mockTokenService.verifyRefreshToken.mockReturnValue({ user_id: 'uuid-123', email: 'john@example.com', role: 'client' });
       mockCacheService.getSession.mockResolvedValue('valid_token');
       mockTokenService.signAccessToken.mockReturnValue('new_access_token');
 

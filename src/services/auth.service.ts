@@ -99,7 +99,7 @@ export class AuthService implements IAuthService {
 
     let decoded: any;
     try {
-      decoded = this.tokenService.verifyToken(incomingRefreshToken);
+      decoded = this.tokenService.verifyRefreshToken(incomingRefreshToken);
     } catch (err) {
       throw new Error('Invalid or expired refresh token.');
     }

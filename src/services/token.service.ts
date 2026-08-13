@@ -1,19 +1,28 @@
-import jwt from 'jsonwebtoken';
-import { ITokenService } from './auth.service.interface';
+import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
+import { ITokenService, JwtConfig } from './auth.service.interface';
 
 export class JwtTokenService implements ITokenService {
-  private readonly accessSecret = process.env.JWT_ACCESS_SECRET || 'access_secret';
-  private readonly refreshSecret = process.env.JWT_REFRESH_SECRET || 'refresh_secret';
+  constructor(private readonly config: JwtConfig) {
+    if (!config.accessSecret || !config.refreshSecret) {
+      throw new Error('Critical Security Error: JWT secrets must be explicitly provided.');
+    }
+  }
 
   signAccessToken(payload: object): string {
-    return jwt.sign(payload, this.accessSecret, { expiresIn: '15m' });
+    const options: SignOptions = { expiresIn: (this.config.accessExpiresIn || '15m') as any };
+    return jwt.sign(payload, this.config.accessSecret, options);
   }
 
   signRefreshToken(payload: object): string {
-    return jwt.sign(payload, this.refreshSecret, { expiresIn: '7d' });
+    const options: SignOptions = { expiresIn: (this.config.refreshExpiresIn || '7d') as any };
+    return jwt.sign(payload, this.config.refreshSecret, options);
   }
 
-  verifyToken(token: string): any {
-    return jwt.verify(token, this.refreshSecret);
+  verifyAccessToken(token: string): JwtPayload | string {
+    return jwt.verify(token, this.config.accessSecret);
+  }
+
+  verifyRefreshToken(token: string): JwtPayload | string {
+    return jwt.verify(token, this.config.refreshSecret);
   }
 }

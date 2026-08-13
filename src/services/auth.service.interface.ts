@@ -1,3 +1,5 @@
+import { JwtPayload } from 'jsonwebtoken';
+
 export interface RegisterDTO {
   full_name: string;
   email: string;
@@ -26,13 +28,21 @@ export interface IPasswordHasher {
 export interface ITokenService {
   signAccessToken(payload: object): string;
   signRefreshToken(payload: object): string;
-  verifyToken(token: string): any;
+  verifyAccessToken(token: string): JwtPayload | string
+  verifyRefreshToken(token: string): JwtPayload | string
 }
 
 export interface ICacheService {
   setSession(key: string, value: string, ttlSeconds: number): Promise<void>;
   getSession(key: string): Promise<string | null>;
   deleteSession(key: string): Promise<number>;
+}
+
+export interface JwtConfig {
+  accessSecret: string;
+  refreshSecret: string;
+  accessExpiresIn?: string | number;
+  refreshExpiresIn?: string | number;
 }
 
 export interface IAuthService {
